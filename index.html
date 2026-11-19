@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <title>Ads</title>
+    <style>
+      /* Look plan: canvas #050506, tile well #0B0B0E, ink #F4F4F6, hairline
+         #232328, one accent #FF5A7A on the focus ring only. Radii: 12px tiles,
+         full circle on the download button. No type is rendered. Spacing and
+         motion values come from the design-tokens scale (8px, 32px, 44px,
+         100ms, ease-standard). */
+      :root {
+        --color-canvas: #050506;
+        --color-well: #0b0b0e;
+        --color-ink: #f4f4f6;
+        --color-hairline: #232328;
+        --color-accent: #ff5a7a;
+        --spacing-8: 8px;
+        --tile-min: 176px;
+        --radius-tile: 12px;
+        --radius-full: 9999px;
+        --control: 32px;
+        --control-touch: 44px;
+        --icon: 16px;
+        --duration-100: 100ms;
+        --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+        --focus-ring-width: 2px;
+        --focus-ring-offset: 2px;
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+        background: var(--color-canvas);
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr));
+        gap: var(--spacing-8);
+        padding: max(var(--spacing-8), env(safe-area-inset-top)) max(var(--spacing-8), env(safe-area-inset-right))
+          max(var(--spacing-8), env(safe-area-inset-bottom)) max(var(--spacing-8), env(safe-area-inset-left));
+      }
+
+      .tile {
+        position: relative;
+        aspect-ratio: 9 / 16;
+        overflow: hidden;
+        border-radius: var(--radius-tile);
+        background: var(--color-well);
+        contain: paint;
+      }
+
+      .tile video {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        cursor: pointer;
+      }
+
+      .dl {
+        position: absolute;
+        top: var(--spacing-8);
+        right: var(--spacing-8);
+        display: grid;
+        place-items: center;
+        width: var(--control);
+        height: var(--control);
+        border: 1px solid color-mix(in srgb, var(--color-hairline) 80%, transparent);
+        border-radius: var(--radius-full);
+        background: color-mix(in srgb, var(--color-canvas) 62%, transparent);
+        color: var(--color-ink);
+        opacity: 0.88;
+        transition: opacity var(--duration-100) var(--ease-standard);
+      }
+
+      .dl:hover {
+        opacity: 1;
+      }
+
+      .dl:focus-visible {
+        opacity: 1;
+        outline: var(--focus-ring-width) solid var(--color-accent);
+        outline-offset: var(--focus-ring-offset);
+      }
+
+      .dl svg {
+        width: var(--icon);
+        height: var(--icon);
+      }
+
+      @media (pointer: coarse) {
+        .dl {
+          width: var(--control-touch);
+          height: var(--control-touch);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .dl {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main id="grid"></main>
+    <script>
+      // The ads themselves are the content, so they play under reduced motion
+      // too; only the button's hover fade is UI motion, and it is switched off.
+      const grid = document.getElementById('grid')
+      const tiles = new Map()
+      const ICON =
+        '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10l5 5l5-5"/></svg>'
+
+      // Only tiles on or near the screen decode; the rest wait paused.
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            const v = e.target.querySelector('video')
+            if (e.isIntersecting) {
+              if (!v.getAttribute('src')) v.src = v.dataset.src
+              v.play().catch(() => {})
+            } else if (!v.paused) {
+              v.pause()
+            }
+          }
+        },
+        { rootMargin: '25% 0px' }
+      )
+
+      // A click gives one ad its sound and mutes the rest; a second click mutes it.
+      function toggleSound(v) {
+        const on = v.muted
+        for (const other of grid.querySelectorAll('video')) other.muted = true
+        v.muted = !on
+        if (on) v.play().catch(() => {})
+      }
+
+      function apply(el, ad) {
+        const v = el.querySelector('video')
+        const a = el.querySelector('a')
+        if (v.dataset.src !== ad.v) {
+          v.dataset.src = ad.v
+          v.poster = ad.p
+          if (v.getAttribute('src')) {
+            v.src = ad.v
+            v.play().catch(() => {})
+          }
+        }
+        a.href = ad.d
+        a.setAttribute('download', ad.n || decodeURIComponent(ad.d.split('/').pop()))
+      }
+
+      function make(ad) {
+        const el = document.createElement('div')
+        el.className = 'tile'
+        const v = document.createElement('video')
+        v.muted = true
+        v.defaultMuted = true
+        v.loop = true
+        v.playsInline = true
+        v.preload = 'none'
+        v.setAttribute('muted', '')
+        v.setAttribute('playsinline', '')
+        v.addEventListener('click', () => toggleSound(v))
+        const a = document.createElement('a')
+        a.className = 'dl'
+        a.setAttribute('aria-label', 'Download')
+        a.innerHTML = ICON
+        el.append(v, a)
+        apply(el, ad)
+        io.observe(el)
+        return el
+      }
+
+      async function refresh() {
+        let ads
+        try {
+          // Relative, so the same page works on the local server and on the
+          // published copy under a GitHub Pages subpath.
+          const r = await fetch('ads.json', { cache: 'no-store' })
+          if (!r.ok) return
+          ads = await r.json()
+        } catch {
+          return
+        }
+        const keep = new Set(ads.map((ad) => ad.id))
+        for (const [id, el] of tiles) {
+          if (!keep.has(id)) {
+            io.unobserve(el)
+            el.remove()
+            tiles.delete(id)
+          }
+        }
+        // Newest first. New tiles are inserted in place, so a playing video is
+        // never detached and restarted.
+        let prev = null
+        for (const ad of ads) {
+          let el = tiles.get(ad.id)
+          if (!el) {
+            el = make(ad)
+            tiles.set(ad.id, el)
+          } else {
+            apply(el, ad)
+          }
+          const want = prev ? prev.nextSibling : grid.firstChild
+          if (el !== want) {
+            // Moving a tile detaches its video, which pauses it: resume it.
+            const v = el.querySelector('video')
+            const playing = el.isConnected && !v.paused
+            grid.insertBefore(el, want)
+            if (playing) v.play().catch(() => {})
+          }
+          prev = el
+        }
+      }
+
+      refresh()
+      setInterval(refresh, 30000)
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) refresh()
+      })
+    </script>
+  </body>
+</html>
