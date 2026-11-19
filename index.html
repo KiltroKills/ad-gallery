@@ -8,9 +8,10 @@
     <style>
       /* Look plan: canvas #050506, tile well #0B0B0E, ink #F4F4F6, hairline
          #232328, one accent #FF5A7A on the focus ring only. Radii: 12px tiles,
-         full circle on the download button. No type is rendered. Spacing and
-         motion values come from the design-tokens scale (8px, 32px, 44px,
-         100ms, ease-standard). */
+         full circle on the download button. The only type is each tile's short
+         id, a small monospace pill bottom-left, so an ad can be named without a
+         screenshot. Spacing and motion values come from the design-tokens scale
+         (8px, 32px, 44px, 100ms, ease-standard). */
       :root {
         --color-canvas: #050506;
         --color-well: #0b0b0e;
@@ -100,6 +101,25 @@
         height: var(--icon);
       }
 
+      /* The tile's short id: the first characters of its stable tile id, so it
+         never changes when other ads come or go. One click selects it whole. */
+      .id {
+        position: absolute;
+        left: var(--spacing-8);
+        bottom: var(--spacing-8);
+        padding: 3px 7px;
+        border: 1px solid color-mix(in srgb, var(--color-hairline) 80%, transparent);
+        border-radius: var(--radius-full);
+        background: color-mix(in srgb, var(--color-canvas) 62%, transparent);
+        color: var(--color-ink);
+        font: 500 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.04em;
+        opacity: 0.82;
+        user-select: all;
+        -webkit-user-select: all;
+        cursor: text;
+      }
+
       @media (pointer: coarse) {
         .dl {
           width: var(--control-touch);
@@ -179,7 +199,11 @@
         a.className = 'dl'
         a.setAttribute('aria-label', 'Download')
         a.innerHTML = ICON
-        el.append(v, a)
+        const id = document.createElement('span')
+        id.className = 'id'
+        id.textContent = ad.id.slice(0, 5)
+        id.title = ad.id
+        el.append(v, a, id)
         apply(el, ad)
         io.observe(el)
         return el
