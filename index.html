@@ -11,7 +11,8 @@
          the focus ring only (a pressed chip inverts to ink instead). Type: the
          system sans for chips and captions (label-medium 12/16 500, body-small
          12/16 400), monospace for each tile's short id. Radii: 12px tiles, full
-         circle on every pill, chip and button. The one bold element: colour
+         circle on every pill, chip and button (the copy-link button beside
+         the download button is the same 32px circle, 44px on touch). The one bold element: colour
          swatches on the chips and tile tags of a value that has one (hair
          colours today); their colours encode content, so they come from the tag
          vocabulary's data (vocab.json) as an inline --sw, never from this
@@ -276,10 +277,17 @@
         cursor: pointer;
       }
 
-      .dl {
+      /* The tile's round buttons, top right: copy link, then download. */
+      .actions {
         position: absolute;
         top: var(--spacing-8);
         right: var(--spacing-8);
+        display: flex;
+        gap: var(--spacing-8);
+      }
+
+      .dl,
+      .cp {
         display: grid;
         place-items: center;
         width: var(--control);
@@ -288,19 +296,29 @@
         border-radius: var(--radius-full);
         background: color-mix(in srgb, var(--color-canvas) 62%, transparent);
         color: var(--color-ink);
+        padding: 0;
         opacity: 0.88;
+        cursor: pointer;
         transition: opacity var(--duration-100) var(--ease-standard);
       }
 
-      .dl:hover {
+      .dl:hover,
+      .cp:hover,
+      .dl:focus-visible,
+      .cp:focus-visible {
         opacity: 1;
       }
 
-      .dl:focus-visible {
+      /* Just copied: the pressed chip's inversion, with a check for the link. */
+      .cp[data-copied='true'] {
+        border-color: var(--color-ink);
+        background: var(--color-ink);
+        color: var(--color-canvas);
         opacity: 1;
       }
 
-      .dl svg {
+      .dl svg,
+      .cp svg {
         width: var(--icon);
         height: var(--icon);
       }
@@ -408,7 +426,8 @@
       }
 
       @media (pointer: coarse) {
-        .dl {
+        .dl,
+        .cp {
           width: var(--control-touch);
           height: var(--control-touch);
         }
@@ -425,6 +444,7 @@
 
       @media (prefers-reduced-motion: reduce) {
         .dl,
+        .cp,
         .chip,
         .tag {
           transition: none;
@@ -437,6 +457,7 @@
       <div class="groups" id="groups"></div>
       <p class="status">
         <span id="count" aria-live="polite"></span>
+        <span id="copied" role="status" aria-live="polite"></span>
         <button type="button" class="text-button" id="clear" hidden>Clear filters</button>
       </p>
     </header>
@@ -456,8 +477,11 @@
       const tiles = new Map()
       let ads = []
       let loaded = false
-      const ICON =
-        '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10l5 5l5-5"/></svg>'
+      const svg = (paths) =>
+        `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`
+      const ICON = svg('<path d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10l5 5l5-5"/>')
+      const LINK_ICON = svg('<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>')
+      const CHECK_ICON = svg('<path d="M20 6 9 17l-5-5"/>')
 
       // The tag vocabulary comes from vocab.json (the data dir's tag-vocab.json):
       // groups in display order, each with its values, labels and swatches. This
@@ -726,6 +750,69 @@
         meta.replaceChildren(...(desc.childNodes.length ? [desc] : []), ...(tags.childNodes.length ? [tags] : []))
       }
 
+      // The id under a tile is the one its link carries (ad=<id> in `l`: at least 5
+      // characters, more where another ad shares them), so the page and the link
+      // never disagree. Without a link it is the first 5.
+      function shortOf(ad) {
+        try {
+          return new URL(ad.l).searchParams.get('ad') || ad.id.slice(0, 5)
+        } catch {
+          return ad.id.slice(0, 5)
+        }
+      }
+
+      // The fantasm.chat link stub, built by the server from the ad's tags (ads.json `l`).
+      function renderLink(el, ad) {
+        el.querySelector('.id').textContent = shortOf(ad)
+        const cp = el.querySelector('.cp')
+        cp.hidden = !ad.l
+        cp.dataset.link = ad.l || ''
+        cp.title = ad.l || ''
+        cp.setAttribute('aria-label', ad.t?.name ? `Copy link for ${ad.t.name}` : `Copy link for ad ${shortOf(ad)}`)
+      }
+
+      const copiedEl = document.getElementById('copied')
+      let copiedTimer = 0
+
+      // Clipboard API where the page is a secure context, else a selected textarea.
+      async function copyText(text) {
+        try {
+          await navigator.clipboard.writeText(text)
+          return true
+        } catch {}
+        const t = document.createElement('textarea')
+        t.value = text
+        t.setAttribute('readonly', '')
+        t.style.cssText = 'position:fixed;top:0;left:0;opacity:0'
+        document.body.append(t)
+        t.select()
+        let ok = false
+        try {
+          ok = document.execCommand('copy')
+        } catch {}
+        t.remove()
+        return ok
+      }
+
+      async function copyLink(b) {
+        const ok = await copyText(b.dataset.link)
+        clearTimeout(copiedTimer)
+        // Clearing first makes a repeat copy announce again.
+        copiedEl.textContent = ''
+        setTimeout(() => (copiedEl.textContent = ok ? 'Link copied' : 'Could not copy the link'), 50)
+        if (ok) {
+          b.dataset.copied = 'true'
+          b.innerHTML = CHECK_ICON
+        }
+        copiedTimer = setTimeout(() => {
+          copiedEl.textContent = ''
+          for (const x of grid.querySelectorAll('.cp[data-copied]')) {
+            delete x.dataset.copied
+            x.innerHTML = LINK_ICON
+          }
+        }, 2000)
+      }
+
       function apply(el, ad) {
         const v = el.querySelector('video')
         const a = el.querySelector('a.dl')
@@ -740,6 +827,7 @@
         a.href = ad.d
         a.setAttribute('download', ad.n || decodeURIComponent(ad.d.split('/').pop()))
         renderMeta(el, ad)
+        renderLink(el, ad)
       }
 
       function make(ad) {
@@ -760,11 +848,17 @@
         a.className = 'dl'
         a.setAttribute('aria-label', 'Download')
         a.innerHTML = ICON
+        const cp = document.createElement('button')
+        cp.type = 'button'
+        cp.className = 'cp'
+        cp.innerHTML = LINK_ICON
+        const actions = document.createElement('div')
+        actions.className = 'actions'
+        actions.append(cp, a)
         const id = document.createElement('span')
         id.className = 'id'
-        id.textContent = ad.id.slice(0, 5)
         id.title = ad.id
-        tile.append(v, a, id)
+        tile.append(v, actions, id)
         const meta = document.createElement('div')
         meta.className = 'meta'
         el.append(tile, meta)
@@ -777,6 +871,8 @@
       grid.addEventListener('click', (e) => {
         const b = e.target.closest('.tag')
         if (b) toggle(b.dataset.key, b.dataset.value)
+        const cp = e.target.closest('.cp')
+        if (cp && cp.dataset.link) copyLink(cp)
       })
 
       function skeletons(n) {
