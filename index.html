@@ -464,30 +464,49 @@
       // is only the fallback for when that file cannot be read. A key or value
       // that ads carry but the vocabulary lacks still shows, after the known ones.
       const DEFAULT_VOCAB = [
-        { key: 'gender', label: 'Gender', values: [{ value: 'female' }, { value: 'male' }, { value: 'mixed' }] },
-        { key: 'style', label: 'Style', values: [{ value: 'anime' }, { value: 'realistic' }] },
+        {
+          key: 'gender',
+          label: 'Gender',
+          values: [{ value: 'female' }, { value: 'male' }, { value: 'nonhuman', label: 'Nonhuman' }, { value: 'mixed', label: 'Mixed cast' }]
+        },
+        {
+          key: 'style',
+          label: 'Style',
+          values: [
+            { value: 'anime' },
+            { value: 'realistic' },
+            { value: 'cartoon', label: 'Cartoon' },
+            { value: '3d', label: '3D animated' },
+            { value: 'other', label: 'Other' }
+          ]
+        },
         {
           key: 'category',
           label: 'Category',
-          values: ['goth', 'hot', 'athletic', 'cute', 'alt', 'elegant', 'nerdy', 'fantasy', 'professional', 'soft', 'casual'].map(
-            (value) => ({ value })
-          )
+          values: [
+            ...['goth', 'hot', 'athletic', 'cute', 'alt', 'elegant', 'nerdy', 'fantasy', 'professional', 'soft', 'casual', 'funny', 'cool'].map(
+              (value) => ({ value })
+            ),
+            { value: 'other', label: 'Other' }
+          ]
         },
         {
           key: 'hair',
-          label: 'Hair',
+          label: 'Hair / fur',
           values: [
             { value: 'black', swatch: '#17171a' },
-            { value: 'brown', swatch: '#7a5034' },
-            { value: 'blonde', swatch: '#e6c983' },
+            { value: 'brown', label: 'Brown / tan', swatch: '#7a5034' },
+            { value: 'blonde', label: 'Blonde / golden', swatch: '#e6c983' },
             { value: 'red', swatch: '#c0532f' },
+            { value: 'orange', label: 'Orange / ginger', swatch: '#e08a3c' },
             { value: 'pink', swatch: '#f09cc0' },
-            { value: 'silver', swatch: '#c8cad2' },
+            { value: 'white', swatch: '#f4f4f6' },
+            { value: 'silver', label: 'Silver / grey', swatch: '#c8cad2' },
             { value: 'blue', swatch: '#4c7fe0' },
             { value: 'purple', swatch: '#9468d8' },
             { value: 'green', swatch: '#4caa6a' },
-            { value: 'multi', label: 'Mixed hair', swatch: 'multi' },
-            { value: 'none', label: 'No hair', swatch: 'none' }
+            { value: 'multi', label: 'Multicolour', swatch: 'multi' },
+            { value: 'none', label: 'None', swatch: 'none' }
           ]
         }
       ]
