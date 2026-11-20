@@ -6,29 +6,55 @@
     <meta name="color-scheme" content="dark" />
     <title>Ads</title>
     <style>
-      /* Look plan: canvas #050506, tile well #0B0B0E, ink #F4F4F6, hairline
-         #232328, one accent #FF5A7A on the focus ring only. Radii: 12px tiles,
-         full circle on the download button. The only type is each tile's short
-         id, a small monospace pill bottom-left, so an ad can be named without a
-         screenshot. Spacing and motion values come from the design-tokens scale
-         (8px, 32px, 44px, 100ms, ease-standard). */
+      /* Look plan: canvas #050506, tile well #0B0B0E, ink #F4F4F6, muted ink
+         #9A9AA3 for labels and counts, hairline #232328, one accent #FF5A7A on
+         the focus ring only (a pressed chip inverts to ink instead). Type: the
+         system sans for chips and captions (label-medium 12/16 500, body-small
+         12/16 400), monospace for each tile's short id. Radii: 12px tiles, full
+         circle on every pill, chip and button. The one bold element: hair-colour
+         swatches on the Hair chips and on each tile's hair tag; their colours
+         encode content, so they sit apart as --hair-* below. Spacing, type and
+         motion values come from the design-tokens scale. */
       :root {
         --color-canvas: #050506;
         --color-well: #0b0b0e;
         --color-ink: #f4f4f6;
+        --color-muted: #9a9aa3;
         --color-hairline: #232328;
         --color-accent: #ff5a7a;
+        --font-web-system: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        --text-label-medium: 12px;
+        --text-label-small: 11px;
+        --leading-16: 16px;
+        --spacing-2: 2px;
+        --spacing-4: 4px;
+        --spacing-6: 6px;
         --spacing-8: 8px;
+        --spacing-12: 12px;
+        --spacing-16: 16px;
+        --spacing-24: 24px;
         --tile-min: 176px;
         --radius-tile: 12px;
         --radius-full: 9999px;
         --control: 32px;
         --control-touch: 44px;
+        --target-web-min: 24px;
+        --swatch: 10px;
         --icon: 16px;
         --duration-100: 100ms;
         --ease-standard: cubic-bezier(0.2, 0, 0, 1);
         --focus-ring-width: 2px;
         --focus-ring-offset: 2px;
+        /* Content colours: what each hair tag looks like on screen. */
+        --hair-black: #17171a;
+        --hair-brown: #7a5034;
+        --hair-blonde: #e6c983;
+        --hair-red: #c0532f;
+        --hair-pink: #f09cc0;
+        --hair-silver: #c8cad2;
+        --hair-blue: #4c7fe0;
+        --hair-purple: #9468d8;
+        --hair-green: #4caa6a;
         color-scheme: dark;
       }
 
@@ -37,18 +63,212 @@
         margin: 0;
       }
 
+      [hidden] {
+        display: none !important;
+      }
+
       html,
       body {
         min-height: 100%;
         background: var(--color-canvas);
+        color: var(--color-ink);
+        font-family: var(--font-web-system);
       }
+
+      button {
+        font: inherit;
+        color: inherit;
+      }
+
+      :focus-visible {
+        outline: var(--focus-ring-width) solid var(--color-accent);
+        outline-offset: var(--focus-ring-offset);
+      }
+
+      /* ------------------------------------------------------------ filters */
+
+      .filters {
+        display: grid;
+        gap: var(--spacing-12);
+        padding: max(var(--spacing-16), env(safe-area-inset-top)) max(var(--spacing-8), env(safe-area-inset-right))
+          var(--spacing-12) max(var(--spacing-8), env(safe-area-inset-left));
+        background: var(--color-canvas);
+        border-bottom: 1px solid var(--color-hairline);
+      }
+
+      .groups {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-12) var(--spacing-24);
+      }
+
+      .group {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-8);
+        min-width: 0;
+      }
+
+      .group-label,
+      .status {
+        color: var(--color-muted);
+        font-size: var(--text-label-medium);
+        line-height: var(--leading-16);
+        font-weight: 500;
+      }
+
+      .group-label {
+        flex: none;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-6);
+        min-width: 0;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-6);
+        min-height: var(--control);
+        padding: 0 var(--spacing-12);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-full);
+        background: var(--color-well);
+        font-size: var(--text-label-medium);
+        line-height: var(--leading-16);
+        font-weight: 500;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: border-color var(--duration-100) var(--ease-standard);
+      }
+
+      .chip:hover {
+        border-color: var(--color-muted);
+      }
+
+      .chip .n {
+        color: var(--color-muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .chip[aria-pressed='true'] {
+        border-color: var(--color-ink);
+        background: var(--color-ink);
+        color: var(--color-canvas);
+      }
+
+      .chip[aria-pressed='true'] .n {
+        color: color-mix(in srgb, var(--color-canvas) 64%, transparent);
+      }
+
+      .chip:disabled {
+        opacity: 0.38;
+        cursor: default;
+      }
+
+      .chip:disabled:hover {
+        border-color: var(--color-hairline);
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-12);
+        min-height: var(--target-web-min);
+      }
+
+      .text-button {
+        min-height: var(--target-web-min);
+        padding: 0 var(--spacing-8);
+        border: 0;
+        border-radius: var(--radius-full);
+        background: none;
+        color: var(--color-ink);
+        font-size: var(--text-label-medium);
+        font-weight: 500;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        cursor: pointer;
+      }
+
+      /* A hair colour, as a dot. */
+      .sw {
+        flex: none;
+        width: var(--swatch);
+        height: var(--swatch);
+        border-radius: var(--radius-full);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 28%, transparent);
+      }
+
+      .sw[data-hair='black'] { background: var(--hair-black); }
+      .sw[data-hair='brown'] { background: var(--hair-brown); }
+      .sw[data-hair='blonde'] { background: var(--hair-blonde); }
+      .sw[data-hair='red'] { background: var(--hair-red); }
+      .sw[data-hair='pink'] { background: var(--hair-pink); }
+      .sw[data-hair='silver'] { background: var(--hair-silver); }
+      .sw[data-hair='blue'] { background: var(--hair-blue); }
+      .sw[data-hair='purple'] { background: var(--hair-purple); }
+      .sw[data-hair='green'] { background: var(--hair-green); }
+      .sw[data-hair='multi'] {
+        background: conic-gradient(var(--hair-red) 0 25%, var(--hair-blonde) 0 50%, var(--hair-brown) 0 75%, var(--hair-silver) 0);
+      }
+      .sw[data-hair='none'] {
+        background: none;
+        box-shadow: inset 0 0 0 1px var(--color-muted);
+      }
+
+      /* Wide screens keep the filters in reach while scrolling; on a phone the
+         bar scrolls away and each group scrolls sideways on one line. */
+      @media (min-width: 900px) and (min-height: 640px) {
+        .filters {
+          position: sticky;
+          top: 0;
+          z-index: 1;
+        }
+      }
+
+      @media (max-width: 639px) {
+        .groups {
+          display: grid;
+          gap: var(--spacing-8);
+        }
+
+        .group {
+          display: grid;
+          grid-template-columns: 64px minmax(0, 1fr);
+        }
+
+        .chips {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          scrollbar-width: none;
+          margin-right: calc(-1 * var(--spacing-8));
+          padding-right: var(--spacing-8);
+        }
+
+        .chips::-webkit-scrollbar {
+          display: none;
+        }
+      }
+
+      /* ------------------------------------------------------------ grid */
 
       main {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr));
-        gap: var(--spacing-8);
-        padding: max(var(--spacing-8), env(safe-area-inset-top)) max(var(--spacing-8), env(safe-area-inset-right))
+        gap: var(--spacing-16) var(--spacing-8);
+        padding: var(--spacing-8) max(var(--spacing-8), env(safe-area-inset-right))
           max(var(--spacing-8), env(safe-area-inset-bottom)) max(var(--spacing-8), env(safe-area-inset-left));
+      }
+
+      .ad {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-8);
+        min-width: 0;
       }
 
       .tile {
@@ -92,8 +312,6 @@
 
       .dl:focus-visible {
         opacity: 1;
-        outline: var(--focus-ring-width) solid var(--color-accent);
-        outline-offset: var(--focus-ring-offset);
       }
 
       .dl svg {
@@ -112,7 +330,7 @@
         border-radius: var(--radius-full);
         background: color-mix(in srgb, var(--color-canvas) 62%, transparent);
         color: var(--color-ink);
-        font: 500 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        font: 500 var(--text-label-small) / 1 ui-monospace, SFMono-Regular, Menlo, monospace;
         letter-spacing: 0.04em;
         opacity: 0.82;
         user-select: all;
@@ -120,29 +338,271 @@
         cursor: text;
       }
 
+      /* Under each tile: who it shows, then its tags. A tag filters by its value. */
+      .meta {
+        display: grid;
+        gap: var(--spacing-6);
+        padding: 0 var(--spacing-2);
+      }
+
+      .desc {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        color: var(--color-muted);
+        font-size: var(--text-label-medium);
+        line-height: var(--leading-16);
+      }
+
+      .desc strong {
+        color: var(--color-ink);
+        font-weight: 500;
+      }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-4);
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-4);
+        min-height: var(--target-web-min);
+        padding: 0 var(--spacing-8);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-full);
+        background: none;
+        color: var(--color-muted);
+        font-size: var(--text-label-medium);
+        line-height: var(--leading-16);
+        font-weight: 500;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: border-color var(--duration-100) var(--ease-standard);
+      }
+
+      .tag:hover {
+        border-color: var(--color-muted);
+        color: var(--color-ink);
+      }
+
+      .tag[aria-pressed='true'] {
+        border-color: var(--color-ink);
+        color: var(--color-ink);
+      }
+
+      /* Loading: tile-shaped placeholders in the grid's own anatomy. */
+      .skeleton .tile {
+        background: var(--color-well);
+      }
+
+      .skeleton .bar {
+        height: var(--spacing-12);
+        border-radius: var(--radius-full);
+        background: var(--color-well);
+      }
+
+      .skeleton .bar + .bar {
+        width: 64%;
+      }
+
+      .empty {
+        display: grid;
+        justify-items: center;
+        gap: var(--spacing-12);
+        padding: var(--spacing-24) var(--spacing-16);
+        color: var(--color-muted);
+        font-size: var(--text-label-medium);
+        line-height: var(--leading-16);
+        text-align: center;
+      }
+
       @media (pointer: coarse) {
         .dl {
           width: var(--control-touch);
           height: var(--control-touch);
         }
+
+        .chip {
+          min-height: var(--control-touch);
+        }
+
+        .tag,
+        .text-button {
+          min-height: var(--control);
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .dl {
+        .dl,
+        .chip,
+        .tag {
           transition: none;
         }
       }
     </style>
   </head>
   <body>
-    <main id="grid"></main>
+    <header class="filters" aria-label="Filter ads">
+      <div class="groups" id="groups"></div>
+      <p class="status">
+        <span id="count" aria-live="polite"></span>
+        <button type="button" class="text-button" id="clear" hidden>Clear filters</button>
+      </p>
+    </header>
+    <main id="grid" aria-label="Ads"></main>
+    <div class="empty" id="empty" hidden>
+      <p id="empty-text"></p>
+      <button type="button" class="chip" id="empty-action"></button>
+    </div>
     <script>
       // The ads themselves are the content, so they play under reduced motion
-      // too; only the button's hover fade is UI motion, and it is switched off.
+      // too; only the controls' hover fades are UI motion, and they are switched off.
       const grid = document.getElementById('grid')
+      const groupsEl = document.getElementById('groups')
+      const countEl = document.getElementById('count')
+      const clearEl = document.getElementById('clear')
+      const emptyEl = document.getElementById('empty')
       const tiles = new Map()
+      let ads = []
+      let loaded = false
       const ICON =
         '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10l5 5l5-5"/></svg>'
+
+      // The tag vocabulary, in display order (lib.mjs TAG_VALUES). A value the
+      // page does not know yet still shows, after these.
+      const GROUPS = [
+        { key: 'gender', label: 'Gender', values: ['female', 'male', 'mixed'] },
+        { key: 'style', label: 'Style', values: ['anime', 'realistic'] },
+        {
+          key: 'category',
+          label: 'Category',
+          values: ['goth', 'hot', 'athletic', 'cute', 'alt', 'elegant', 'nerdy', 'fantasy', 'professional', 'soft', 'casual']
+        },
+        {
+          key: 'hair',
+          label: 'Hair',
+          values: ['black', 'brown', 'blonde', 'red', 'pink', 'silver', 'blue', 'purple', 'green', 'multi', 'none']
+        }
+      ]
+      const NAMES = { none: 'No hair', multi: 'Mixed hair' }
+      const nameOf = (key, value) =>
+        (key === 'hair' && NAMES[value]) || value.charAt(0).toUpperCase() + value.slice(1)
+
+      // ---------------------------------------------------------- filter state
+
+      // key -> Set of values; groups AND, values within a group OR.
+      const filter = Object.fromEntries(GROUPS.map((g) => [g.key, new Set()]))
+      const active = () => GROUPS.some((g) => filter[g.key].size)
+
+      function readHash() {
+        const params = new URLSearchParams(location.hash.slice(1))
+        for (const g of GROUPS) {
+          filter[g.key] = new Set((params.get(g.key) || '').split(',').filter(Boolean))
+        }
+      }
+
+      function writeHash() {
+        const parts = GROUPS.filter((g) => filter[g.key].size).map(
+          (g) => `${g.key}=${[...filter[g.key]].map(encodeURIComponent).join(',')}`
+        )
+        history.replaceState(null, '', parts.length ? `#${parts.join('&')}` : location.pathname + location.search)
+      }
+
+      // Does an ad pass every group's filter, optionally ignoring one group?
+      function passes(ad, skip) {
+        for (const g of GROUPS) {
+          if (g.key === skip || !filter[g.key].size) continue
+          if (!ad.t || !filter[g.key].has(ad.t[g.key])) return false
+        }
+        return true
+      }
+
+      function toggle(key, value) {
+        const set = filter[key]
+        if (set.has(value)) set.delete(value)
+        else set.add(value)
+        writeHash()
+        render()
+      }
+
+      function clearAll() {
+        for (const g of GROUPS) filter[g.key].clear()
+        writeHash()
+        render()
+      }
+
+      // ---------------------------------------------------------- filter bar
+
+      function swatch(value) {
+        const s = document.createElement('span')
+        s.className = 'sw'
+        s.dataset.hair = value
+        s.setAttribute('aria-hidden', 'true')
+        return s
+      }
+
+      // Chips for every value some ad carries (or that is filtered on), each
+      // with how many ads it would show given the other groups' filters.
+      function renderBar() {
+        const frag = document.createDocumentFragment()
+        for (const g of GROUPS) {
+          const present = new Set(ads.map((ad) => ad.t?.[g.key]).filter(Boolean))
+          for (const v of filter[g.key]) present.add(v)
+          const values = [...g.values.filter((v) => present.has(v)), ...[...present].filter((v) => !g.values.includes(v))]
+          if (!values.length) continue
+          const pool = ads.filter((ad) => passes(ad, g.key))
+          const wrap = document.createElement('div')
+          wrap.className = 'group'
+          wrap.setAttribute('role', 'group')
+          const label = document.createElement('span')
+          label.className = 'group-label'
+          label.id = `g-${g.key}`
+          label.textContent = g.label
+          wrap.setAttribute('aria-labelledby', label.id)
+          const chips = document.createElement('div')
+          chips.className = 'chips'
+          for (const v of values) {
+            const n = pool.filter((ad) => ad.t?.[g.key] === v).length
+            const on = filter[g.key].has(v)
+            const b = document.createElement('button')
+            b.type = 'button'
+            b.className = 'chip'
+            b.dataset.key = g.key
+            b.dataset.value = v
+            b.setAttribute('aria-pressed', String(on))
+            b.disabled = !n && !on
+            if (g.key === 'hair') b.append(swatch(v))
+            const text = document.createElement('span')
+            text.textContent = nameOf(g.key, v)
+            const count = document.createElement('span')
+            count.className = 'n'
+            count.textContent = n
+            b.append(text, count)
+            b.setAttribute('aria-label', `${nameOf(g.key, v)}, ${n} ad${n === 1 ? '' : 's'}`)
+            chips.append(b)
+          }
+          wrap.append(label, chips)
+          frag.append(wrap)
+        }
+        // Keep keyboard focus on the chip that was pressed across the re-render.
+        const focused = document.activeElement?.closest?.('.chip')
+        const keep = focused && groupsEl.contains(focused) ? [focused.dataset.key, focused.dataset.value] : null
+        groupsEl.replaceChildren(frag)
+        if (keep) groupsEl.querySelector(`.chip[data-key="${keep[0]}"][data-value="${CSS.escape(keep[1])}"]`)?.focus()
+      }
+
+      groupsEl.addEventListener('click', (e) => {
+        const b = e.target.closest('.chip')
+        if (b && !b.disabled) toggle(b.dataset.key, b.dataset.value)
+      })
+      clearEl.addEventListener('click', clearAll)
+
+      // ---------------------------------------------------------- tiles
 
       // Only tiles on or near the screen decode; the rest wait paused.
       const io = new IntersectionObserver(
@@ -168,9 +628,45 @@
         if (on) v.play().catch(() => {})
       }
 
+      function renderMeta(el, ad) {
+        const key = JSON.stringify(ad.t || null)
+        if (el.dataset.tags === key) return
+        el.dataset.tags = key
+        const meta = el.querySelector('.meta')
+        const t = ad.t || {}
+        const desc = document.createElement('p')
+        desc.className = 'desc'
+        if (t.name) {
+          const strong = document.createElement('strong')
+          strong.textContent = t.name
+          desc.append(strong, t.desc ? ` ${t.desc}` : '')
+        } else if (t.desc) {
+          desc.textContent = t.desc.charAt(0).toUpperCase() + t.desc.slice(1)
+        }
+        const full = [t.name, t.desc].filter(Boolean).join(': ')
+        if (full) desc.title = full
+        el.querySelector('video').setAttribute('aria-label', full || 'Ad')
+        const tags = document.createElement('div')
+        tags.className = 'tags'
+        for (const g of GROUPS) {
+          const v = t[g.key]
+          if (!v) continue
+          const b = document.createElement('button')
+          b.type = 'button'
+          b.className = 'tag'
+          b.dataset.key = g.key
+          b.dataset.value = v
+          b.title = `Filter by ${g.label.toLowerCase()}: ${nameOf(g.key, v)}`
+          if (g.key === 'hair') b.append(swatch(v))
+          b.append(nameOf(g.key, v))
+          tags.append(b)
+        }
+        meta.replaceChildren(...(desc.childNodes.length ? [desc] : []), ...(tags.childNodes.length ? [tags] : []))
+      }
+
       function apply(el, ad) {
         const v = el.querySelector('video')
-        const a = el.querySelector('a')
+        const a = el.querySelector('a.dl')
         if (v.dataset.src !== ad.v) {
           v.dataset.src = ad.v
           v.poster = ad.p
@@ -181,11 +677,14 @@
         }
         a.href = ad.d
         a.setAttribute('download', ad.n || decodeURIComponent(ad.d.split('/').pop()))
+        renderMeta(el, ad)
       }
 
       function make(ad) {
-        const el = document.createElement('div')
-        el.className = 'tile'
+        const el = document.createElement('article')
+        el.className = 'ad'
+        const tile = document.createElement('div')
+        tile.className = 'tile'
         const v = document.createElement('video')
         v.muted = true
         v.defaultMuted = true
@@ -203,23 +702,75 @@
         id.className = 'id'
         id.textContent = ad.id.slice(0, 5)
         id.title = ad.id
-        el.append(v, a, id)
+        tile.append(v, a, id)
+        const meta = document.createElement('div')
+        meta.className = 'meta'
+        el.append(tile, meta)
         apply(el, ad)
         io.observe(el)
         return el
       }
 
+      // A tag under a tile filters the grid to its value (a second click undoes it).
+      grid.addEventListener('click', (e) => {
+        const b = e.target.closest('.tag')
+        if (b) toggle(b.dataset.key, b.dataset.value)
+      })
+
+      function skeletons(n) {
+        for (let i = 0; i < n; i++) {
+          const el = document.createElement('div')
+          el.className = 'ad skeleton'
+          el.setAttribute('aria-hidden', 'true')
+          el.innerHTML = '<div class="tile"></div><div class="meta"><div class="bar"></div><div class="bar"></div></div>'
+          grid.append(el)
+        }
+      }
+
+      // ---------------------------------------------------------- render
+
+      function render() {
+        let shown = 0
+        for (const ad of ads) {
+          const el = tiles.get(ad.id)
+          if (!el) continue
+          const ok = passes(ad)
+          el.hidden = !ok
+          if (ok) shown++
+          for (const b of el.querySelectorAll('.tag')) {
+            b.setAttribute('aria-pressed', String(filter[b.dataset.key].has(b.dataset.value)))
+          }
+        }
+        renderBar()
+        const on = active()
+        countEl.textContent = on ? `${shown} of ${ads.length} ads` : `${ads.length} ads`
+        clearEl.hidden = !on
+        const empty = loaded && shown === 0
+        emptyEl.hidden = !empty
+        if (empty) {
+          document.getElementById('empty-text').textContent = on ? 'No ad matches these filters.' : 'No ads in the gallery yet.'
+          document.getElementById('empty-action').textContent = on ? 'Clear filters' : 'Check again'
+        }
+      }
+
+      document.getElementById('empty-action').addEventListener('click', () => (active() ? clearAll() : refresh()))
+
       async function refresh() {
-        let ads
+        let next
         try {
           // Relative, so the same page works on the local server and on the
           // published copy under a GitHub Pages subpath.
           const r = await fetch('ads.json', { cache: 'no-store' })
           if (!r.ok) return
-          ads = await r.json()
+          next = await r.json()
         } catch {
           return
         }
+        if (!loaded) {
+          for (const s of grid.querySelectorAll('.skeleton')) s.remove()
+          loaded = true
+        }
+        ads = next
         const keep = new Set(ads.map((ad) => ad.id))
         for (const [id, el] of tiles) {
           if (!keep.has(id)) {
@@ -249,8 +800,15 @@
           }
           prev = el
         }
+        render()
       }
 
+      readHash()
+      window.addEventListener('hashchange', () => {
+        readHash()
+        render()
+      })
+      skeletons(8)
       refresh()
       setInterval(refresh, 30000)
       document.addEventListener('visibilitychange', () => {
