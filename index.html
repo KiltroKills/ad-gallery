@@ -11,10 +11,12 @@
          the focus ring only (a pressed chip inverts to ink instead). Type: the
          system sans for chips and captions (label-medium 12/16 500, body-small
          12/16 400), monospace for each tile's short id. Radii: 12px tiles, full
-         circle on every pill, chip and button. The one bold element: hair-colour
-         swatches on the Hair chips and on each tile's hair tag; their colours
-         encode content, so they sit apart as --hair-* below. Spacing, type and
-         motion values come from the design-tokens scale. */
+         circle on every pill, chip and button. The one bold element: colour
+         swatches on the chips and tile tags of a value that has one (hair
+         colours today); their colours encode content, so they come from the tag
+         vocabulary's data (vocab.json) as an inline --sw, never from this
+         stylesheet. Spacing, type and motion values come from the design-tokens
+         scale. */
       :root {
         --color-canvas: #050506;
         --color-well: #0b0b0e;
@@ -45,16 +47,6 @@
         --ease-standard: cubic-bezier(0.2, 0, 0, 1);
         --focus-ring-width: 2px;
         --focus-ring-offset: 2px;
-        /* Content colours: what each hair tag looks like on screen. */
-        --hair-black: #17171a;
-        --hair-brown: #7a5034;
-        --hair-blonde: #e6c983;
-        --hair-red: #c0532f;
-        --hair-pink: #f09cc0;
-        --hair-silver: #c8cad2;
-        --hair-blue: #4c7fe0;
-        --hair-purple: #9468d8;
-        --hair-green: #4caa6a;
         color-scheme: dark;
       }
 
@@ -194,28 +186,22 @@
         cursor: pointer;
       }
 
-      /* A hair colour, as a dot. */
+      /* A tag value's colour, as a dot: its swatch from vocab.json, set inline as
+         --sw. `multi` and `none` are the two swatches that are not one colour. */
       .sw {
         flex: none;
         width: var(--swatch);
         height: var(--swatch);
         border-radius: var(--radius-full);
+        background: var(--sw);
         box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 28%, transparent);
       }
 
-      .sw[data-hair='black'] { background: var(--hair-black); }
-      .sw[data-hair='brown'] { background: var(--hair-brown); }
-      .sw[data-hair='blonde'] { background: var(--hair-blonde); }
-      .sw[data-hair='red'] { background: var(--hair-red); }
-      .sw[data-hair='pink'] { background: var(--hair-pink); }
-      .sw[data-hair='silver'] { background: var(--hair-silver); }
-      .sw[data-hair='blue'] { background: var(--hair-blue); }
-      .sw[data-hair='purple'] { background: var(--hair-purple); }
-      .sw[data-hair='green'] { background: var(--hair-green); }
-      .sw[data-hair='multi'] {
-        background: conic-gradient(var(--hair-red) 0 25%, var(--hair-blonde) 0 50%, var(--hair-brown) 0 75%, var(--hair-silver) 0);
+      .sw[data-sw='multi'] {
+        background: conic-gradient(#c0532f 0 25%, #e6c983 0 50%, #7a5034 0 75%, #c8cad2 0);
       }
-      .sw[data-hair='none'] {
+
+      .sw[data-sw='none'] {
         background: none;
         box-shadow: inset 0 0 0 1px var(--color-muted);
       }
@@ -473,42 +459,92 @@
       const ICON =
         '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10l5 5l5-5"/></svg>'
 
-      // The tag vocabulary, in display order (lib.mjs TAG_VALUES). A value the
-      // page does not know yet still shows, after these.
-      const GROUPS = [
-        { key: 'gender', label: 'Gender', values: ['female', 'male', 'mixed'] },
-        { key: 'style', label: 'Style', values: ['anime', 'realistic'] },
+      // The tag vocabulary comes from vocab.json (the data dir's tag-vocab.json):
+      // groups in display order, each with its values, labels and swatches. This
+      // is only the fallback for when that file cannot be read. A key or value
+      // that ads carry but the vocabulary lacks still shows, after the known ones.
+      const DEFAULT_VOCAB = [
+        { key: 'gender', label: 'Gender', values: [{ value: 'female' }, { value: 'male' }, { value: 'mixed' }] },
+        { key: 'style', label: 'Style', values: [{ value: 'anime' }, { value: 'realistic' }] },
         {
           key: 'category',
           label: 'Category',
-          values: ['goth', 'hot', 'athletic', 'cute', 'alt', 'elegant', 'nerdy', 'fantasy', 'professional', 'soft', 'casual']
+          values: ['goth', 'hot', 'athletic', 'cute', 'alt', 'elegant', 'nerdy', 'fantasy', 'professional', 'soft', 'casual'].map(
+            (value) => ({ value })
+          )
         },
         {
           key: 'hair',
           label: 'Hair',
-          values: ['black', 'brown', 'blonde', 'red', 'pink', 'silver', 'blue', 'purple', 'green', 'multi', 'none']
+          values: [
+            { value: 'black', swatch: '#17171a' },
+            { value: 'brown', swatch: '#7a5034' },
+            { value: 'blonde', swatch: '#e6c983' },
+            { value: 'red', swatch: '#c0532f' },
+            { value: 'pink', swatch: '#f09cc0' },
+            { value: 'silver', swatch: '#c8cad2' },
+            { value: 'blue', swatch: '#4c7fe0' },
+            { value: 'purple', swatch: '#9468d8' },
+            { value: 'green', swatch: '#4caa6a' },
+            { value: 'multi', label: 'Mixed hair', swatch: 'multi' },
+            { value: 'none', label: 'No hair', swatch: 'none' }
+          ]
         }
       ]
-      const NAMES = { none: 'No hair', multi: 'Mixed hair' }
-      const nameOf = (key, value) =>
-        (key === 'hair' && NAMES[value]) || value.charAt(0).toUpperCase() + value.slice(1)
+      // Keys of an ad's tags that are text or a number, not a filter group.
+      const NOT_GROUP = new Set(['name', 'desc', 'cast', 'confidence', 'id'])
+      const SWATCH = /^(#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})|multi|none)$/i
+      const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1)
+
+      let vocab = DEFAULT_VOCAB
+      let vocabSig = JSON.stringify(vocab)
+      // The vocabulary plus whatever the ads carry beyond it: [{ key, label, values: [{ value, label?, swatch? }] }].
+      let GROUPS = []
+      const lookup = new Map()
+
+      function buildGroups() {
+        const out = vocab.map((g) => ({ key: g.key, label: g.label || capitalize(g.key), values: g.values.map((v) => ({ ...v })) }))
+        const byKey = new Map(out.map((g) => [g.key, g]))
+        for (const ad of ads) {
+          for (const [key, value] of Object.entries(ad.t || {})) {
+            if (NOT_GROUP.has(key) || typeof value !== 'string') continue
+            let g = byKey.get(key)
+            if (!g) {
+              g = { key, label: capitalize(key), values: [] }
+              byKey.set(key, g)
+              out.push(g)
+            }
+            if (!g.values.some((v) => v.value === value)) g.values.push({ value })
+          }
+        }
+        GROUPS = out
+        lookup.clear()
+        for (const g of GROUPS) lookup.set(g.key, { group: g, values: new Map(g.values.map((v) => [v.value, v])) })
+      }
+
+      const nameOf = (key, value) => lookup.get(key)?.values.get(value)?.label || capitalize(value)
+      const groupLabel = (key) => lookup.get(key)?.group.label || capitalize(key)
 
       // ---------------------------------------------------------- filter state
 
-      // key -> Set of values; groups AND, values within a group OR.
-      const filter = Object.fromEntries(GROUPS.map((g) => [g.key, new Set()]))
-      const active = () => GROUPS.some((g) => filter[g.key].size)
+      // key -> Set of values; groups AND, values within a group OR. Every key in
+      // the URL hash is kept, whether or not a group of that name exists (yet).
+      let filter = new Map()
+      const filterOf = (key) => {
+        if (!filter.has(key)) filter.set(key, new Set())
+        return filter.get(key)
+      }
+      const active = () => GROUPS.some((g) => filterOf(g.key).size)
 
       function readHash() {
         const params = new URLSearchParams(location.hash.slice(1))
-        for (const g of GROUPS) {
-          filter[g.key] = new Set((params.get(g.key) || '').split(',').filter(Boolean))
-        }
+        filter = new Map()
+        for (const [key, list] of params) filter.set(key, new Set(list.split(',').filter(Boolean)))
       }
 
       function writeHash() {
-        const parts = GROUPS.filter((g) => filter[g.key].size).map(
-          (g) => `${g.key}=${[...filter[g.key]].map(encodeURIComponent).join(',')}`
+        const parts = GROUPS.filter((g) => filterOf(g.key).size).map(
+          (g) => `${encodeURIComponent(g.key)}=${[...filterOf(g.key)].map(encodeURIComponent).join(',')}`
         )
         history.replaceState(null, '', parts.length ? `#${parts.join('&')}` : location.pathname + location.search)
       }
@@ -516,14 +552,14 @@
       // Does an ad pass every group's filter, optionally ignoring one group?
       function passes(ad, skip) {
         for (const g of GROUPS) {
-          if (g.key === skip || !filter[g.key].size) continue
-          if (!ad.t || !filter[g.key].has(ad.t[g.key])) return false
+          if (g.key === skip || !filterOf(g.key).size) continue
+          if (!ad.t || !filterOf(g.key).has(ad.t[g.key])) return false
         }
         return true
       }
 
       function toggle(key, value) {
-        const set = filter[key]
+        const set = filterOf(key)
         if (set.has(value)) set.delete(value)
         else set.add(value)
         writeHash()
@@ -531,17 +567,21 @@
       }
 
       function clearAll() {
-        for (const g of GROUPS) filter[g.key].clear()
+        for (const g of GROUPS) filterOf(g.key).clear()
         writeHash()
         render()
       }
 
       // ---------------------------------------------------------- filter bar
 
-      function swatch(value) {
+      // The dot for a value that has a swatch in the vocabulary; null otherwise.
+      function swatch(key, value) {
+        const sw = lookup.get(key)?.values.get(value)?.swatch
+        if (typeof sw !== 'string' || !SWATCH.test(sw)) return null
         const s = document.createElement('span')
         s.className = 'sw'
-        s.dataset.hair = value
+        if (sw[0] === '#') s.style.setProperty('--sw', sw)
+        else s.dataset.sw = sw.toLowerCase()
         s.setAttribute('aria-hidden', 'true')
         return s
       }
@@ -552,8 +592,9 @@
         const frag = document.createDocumentFragment()
         for (const g of GROUPS) {
           const present = new Set(ads.map((ad) => ad.t?.[g.key]).filter(Boolean))
-          for (const v of filter[g.key]) present.add(v)
-          const values = [...g.values.filter((v) => present.has(v)), ...[...present].filter((v) => !g.values.includes(v))]
+          for (const v of filterOf(g.key)) present.add(v)
+          const values = g.values.map((v) => v.value).filter((v) => present.has(v))
+          for (const v of present) if (!values.includes(v)) values.push(v)
           if (!values.length) continue
           const pool = ads.filter((ad) => passes(ad, g.key))
           const wrap = document.createElement('div')
@@ -568,7 +609,7 @@
           chips.className = 'chips'
           for (const v of values) {
             const n = pool.filter((ad) => ad.t?.[g.key] === v).length
-            const on = filter[g.key].has(v)
+            const on = filterOf(g.key).has(v)
             const b = document.createElement('button')
             b.type = 'button'
             b.className = 'chip'
@@ -576,7 +617,8 @@
             b.dataset.value = v
             b.setAttribute('aria-pressed', String(on))
             b.disabled = !n && !on
-            if (g.key === 'hair') b.append(swatch(v))
+            const dot = swatch(g.key, v)
+            if (dot) b.append(dot)
             const text = document.createElement('span')
             text.textContent = nameOf(g.key, v)
             const count = document.createElement('span')
@@ -629,7 +671,7 @@
       }
 
       function renderMeta(el, ad) {
-        const key = JSON.stringify(ad.t || null)
+        const key = vocabSig + JSON.stringify(ad.t || null)
         if (el.dataset.tags === key) return
         el.dataset.tags = key
         const meta = el.querySelector('.meta')
@@ -657,7 +699,8 @@
           b.dataset.key = g.key
           b.dataset.value = v
           b.title = `Filter by ${g.label.toLowerCase()}: ${nameOf(g.key, v)}`
-          if (g.key === 'hair') b.append(swatch(v))
+          const dot = swatch(g.key, v)
+          if (dot) b.append(dot)
           b.append(nameOf(g.key, v))
           tags.append(b)
         }
@@ -738,7 +781,7 @@
           el.hidden = !ok
           if (ok) shown++
           for (const b of el.querySelectorAll('.tag')) {
-            b.setAttribute('aria-pressed', String(filter[b.dataset.key].has(b.dataset.value)))
+            b.setAttribute('aria-pressed', String(filterOf(b.dataset.key).has(b.dataset.value)))
           }
         }
         renderBar()
@@ -755,14 +798,38 @@
 
       document.getElementById('empty-action').addEventListener('click', () => (active() ? clearAll() : refresh()))
 
+      // vocab.json: the tag vocabulary. Missing or malformed -> keep what is shown
+      // (the built-in defaults until a good copy has loaded).
+      async function loadVocab() {
+        try {
+          const r = await fetch('vocab.json', { cache: 'no-store' })
+          if (!r.ok) return null
+          const raw = (await r.json()).groups
+          const groups = (Array.isArray(raw) ? raw : [])
+            .filter((g) => g && typeof g.key === 'string' && !NOT_GROUP.has(g.key) && Array.isArray(g.values))
+            .map((g) => ({
+              key: g.key,
+              label: typeof g.label === 'string' && g.label ? g.label : capitalize(g.key),
+              values: g.values.filter((v) => v && typeof v.value === 'string' && v.value)
+            }))
+          return groups.length ? groups : null
+        } catch {
+          return null
+        }
+      }
+
       async function refresh() {
         let next
         try {
           // Relative, so the same page works on the local server and on the
           // published copy under a GitHub Pages subpath.
-          const r = await fetch('ads.json', { cache: 'no-store' })
+          const [r, v] = await Promise.all([fetch('ads.json', { cache: 'no-store' }), loadVocab()])
           if (!r.ok) return
           next = await r.json()
+          if (v) {
+            vocab = v
+            vocabSig = JSON.stringify(v)
+          }
         } catch {
           return
         }
@@ -771,6 +838,7 @@
           loaded = true
         }
         ads = next
+        buildGroups()
         const keep = new Set(ads.map((ad) => ad.id))
         for (const [id, el] of tiles) {
           if (!keep.has(id)) {
@@ -803,6 +871,7 @@
         render()
       }
 
+      buildGroups()
       readHash()
       window.addEventListener('hashchange', () => {
         readHash()
