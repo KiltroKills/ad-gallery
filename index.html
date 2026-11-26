@@ -360,11 +360,6 @@
         line-height: var(--leading-16);
       }
 
-      .desc strong {
-        color: var(--color-ink);
-        font-weight: 500;
-      }
-
       .tags {
         display: flex;
         flex-wrap: wrap;
@@ -713,6 +708,23 @@
         if (on) v.play().catch(() => {})
       }
 
+      // The page shows no character names: never the `name` tag (it stays in the
+      // data for the fantasm.chat link), and never that name inside a description,
+      // so "PG: Raven as a teacher" reads "PG: a teacher".
+      function withoutName(text, name) {
+        if (!text || !name) return text || ''
+        const n = name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        if (!n) return text
+        const edge = '(?<![\\p{L}\\p{N}])'
+        const end = '(?![\\p{L}\\p{N}])'
+        return text
+          .replace(new RegExp(`${edge}${n}${end}\\s+as\\s+`, 'giu'), '')
+          .replace(new RegExp(`${edge}${n}${end}('s)?`, 'giu'), '')
+          .replace(/\s{2,}/g, ' ')
+          .replace(/\s+([,;:.!?])/g, '$1')
+          .trim()
+      }
+
       function renderMeta(el, ad) {
         const key = vocabSig + JSON.stringify(ad.t || null)
         if (el.dataset.tags === key) return
@@ -721,16 +733,12 @@
         const t = ad.t || {}
         const desc = document.createElement('p')
         desc.className = 'desc'
-        if (t.name) {
-          const strong = document.createElement('strong')
-          strong.textContent = t.name
-          desc.append(strong, t.desc ? ` ${t.desc}` : '')
-        } else if (t.desc) {
-          desc.textContent = t.desc.charAt(0).toUpperCase() + t.desc.slice(1)
+        const text = withoutName(t.desc, t.name)
+        if (text) {
+          desc.textContent = text.charAt(0).toUpperCase() + text.slice(1)
+          desc.title = desc.textContent
         }
-        const full = [t.name, t.desc].filter(Boolean).join(': ')
-        if (full) desc.title = full
-        el.querySelector('video').setAttribute('aria-label', full || 'Ad')
+        el.querySelector('video').setAttribute('aria-label', desc.textContent || 'Ad')
         const tags = document.createElement('div')
         tags.className = 'tags'
         for (const g of GROUPS) {
@@ -767,8 +775,9 @@
         const cp = el.querySelector('.cp')
         cp.hidden = !ad.l
         cp.dataset.link = ad.l || ''
-        cp.title = ad.l || ''
-        cp.setAttribute('aria-label', ad.t?.name ? `Copy link for ${ad.t.name}` : `Copy link for ad ${shortOf(ad)}`)
+        // The link carries the name slug, so the tooltip names the action, not the link.
+        cp.title = ad.l ? 'Copy link' : ''
+        cp.setAttribute('aria-label', `Copy link for ad ${shortOf(ad)}`)
       }
 
       const copiedEl = document.getElementById('copied')
